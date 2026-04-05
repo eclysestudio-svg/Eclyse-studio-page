@@ -35,7 +35,7 @@
         /* Nav Styling */
         .navbar-blur { background: rgba(15, 15, 15, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); border-radius: 24px; padding: 6px 20px; }
         
-        /* New Sharp Cursor */
+        /* Cursor */
         .cursor-wrapper { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999; mix-blend-mode: difference; }
         .custom-cursor { 
             width: 12px; 
@@ -47,29 +47,30 @@
         }
         .cursor-active { width: 60px; height: 60px; background: transparent; border: 1px solid #fff; }
 
-        /* Roadmap Cards */
+        /* Roadmap Cards - Sticky Stack */
         .process-card { position: sticky; top: 15vh; height: 70vh; width: 100%; display: flex; align-items: center; justify-content: center; }
         .terminal-style { font-family: 'Fira Code', monospace; background: rgba(255,255,255,0.03); border-left: 2px solid #3f3f46; padding: 1.5rem; font-size: 11px; color: #71717a; }
 
         /* Footer Banner */
         .white-footer-banner { background: #fff; color: #000; padding: 4rem 2rem; text-align: center; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; border-radius: 40px 40px 0 0; }
 
-        /* Hero Text Interaction Styles */
         .hero-title div { display: inline-block; will-change: transform; }
     </style>
+    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
-    <script src="https://assets.codepen.io/16327/SplitText3.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollToPlugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, SplitText);
 
         const handleSmoothScroll = (id) => {
             const element = document.getElementById(id);
@@ -98,12 +99,6 @@
                 const moveGlow = (e) => {
                     xTo(e.clientX);
                     yTo(e.clientY);
-                    const speed = Math.abs(e.movementX) + Math.abs(e.movementY);
-                    gsap.to(glowRef.current, {
-                        scale: 1 + speed * 0.01,
-                        opacity: 0.12 + speed * 0.002,
-                        duration: 0.2
-                    });
                 };
                 window.addEventListener('mousemove', moveGlow);
                 return () => window.removeEventListener('mousemove', moveGlow);
@@ -132,11 +127,46 @@
             </nav>
         );
 
+        const Hero = () => {
+            const titleRef = useRef(null);
+            useEffect(() => {
+                const split = new SplitText(titleRef.current, { type: "chars" });
+                const chars = split.chars;
+                gsap.from(chars, { duration: 1.2, y: 80, opacity: 0, ease: "power4.out", stagger: 0.04 });
+
+                const onMouseMove = (e) => {
+                    chars.forEach(char => {
+                        const rect = char.getBoundingClientRect();
+                        const distX = e.clientX - (rect.left + rect.width / 2);
+                        const distY = e.clientY - (rect.top + rect.height / 2);
+                        const distance = Math.hypot(distX, distY);
+                        if (distance < 120) {
+                            const angle = Math.atan2(distY, distX);
+                            const push = (120 - distance) / 120;
+                            gsap.to(char, { x: Math.cos(angle) * push * -25, y: Math.sin(angle) * push * -25, rotation: (Math.cos(angle) * push * -25) * 0.2, duration: 0.4 });
+                        } else {
+                            gsap.to(char, { x: 0, y: 0, rotation: 0, duration: 0.6, ease: "elastic.out(1, 0.5)" });
+                        }
+                    });
+                };
+                window.addEventListener('mousemove', onMouseMove);
+                return () => window.removeEventListener('mousemove', onMouseMove);
+            }, []);
+
+            return (
+                <section className="h-screen flex flex-col justify-center px-8 md:px-24">
+                    <h1 ref={titleRef} className="text-[14vw] md:text-[9vw] font-black leading-[0.85] tracking-tighter uppercase text-white pointer-events-none">
+                        Shaping<br/><span className="text-zinc-500">Digital</span><br/>Prestige.
+                    </h1>
+                </section>
+            );
+        };
+
         const Roadmap = () => {
             const cards = [
-                { step: "01", title: "Discovery", msg: "> INIT FUTURE;\n> MAPPING DNA...\n> STATUS: READY", meta: "Free Preview", desc: "Bridging ambition and reality." },
-                { step: "02", title: "Design", msg: "> EXEC PRESTIGE.EXE;\n> VISUALS: LOADED;\n> STATUS: SECURE", meta: "Safe & Secure", desc: "Refining the aesthetic blueprint." },
-                { step: "03", title: "Scale", msg: "> MAKE IT HAPPEN;\n> DEPLOYING SYSTEM;\n> STATUS: LIVE", meta: "Encrypted", desc: "Executing the final deployment." }
+                { step: "01", title: "Discovery", msg: "> INIT FUTURE;\n> MAPPING DNA...\n> STATUS: READY", desc: "Bridging ambition and reality." },
+                { step: "02", title: "Design", msg: "> EXEC PRESTIGE.EXE;\n> VISUALS: LOADED;\n> STATUS: SECURE", desc: "Refining the aesthetic blueprint." },
+                { step: "03", title: "Scale", msg: "> MAKE IT HAPPEN;\n> DEPLOYING SYSTEM;\n> STATUS: LIVE", desc: "Executing the final deployment." }
             ];
             return (
                 <section id="roadmap" className="px-8 md:px-24 py-24">
@@ -152,7 +182,6 @@
                                     </div>
                                     <div className="w-px h-64 bg-white/5 hidden md:block"></div>
                                     <div className="flex-1 md:pl-12 text-right md:text-left">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-6">{card.meta}</span>
                                         <p className="text-zinc-400 text-sm leading-relaxed uppercase tracking-widest">{card.desc}</p>
                                     </div>
                                 </div>
@@ -163,87 +192,20 @@
             );
         };
 
-        const Hero = () => {
-            const titleRef = useRef(null);
-
-            useEffect(() => {
-                if (typeof SplitText === "undefined") return;
-
-                const split = new SplitText(titleRef.current, { type: "chars" });
-                const chars = split.chars;
-
-                gsap.from(chars, {
-                    duration: 1.2,
-                    y: 80,
-                    opacity: 0,
-                    ease: "power4.out",
-                    stagger: 0.04
-                });
-
-                const onMouseMove = (e) => {
-                    chars.forEach(char => {
-                        const rect = char.getBoundingClientRect();
-                        const charX = rect.left + rect.width / 2;
-                        const charY = rect.top + rect.height / 2;
-                        
-                        const distX = e.clientX - charX;
-                        const distY = e.clientY - charY;
-                        const distance = Math.sqrt(distX * distX + distY * distY);
-
-                        const radius = 120;
-                        const force = 25;
-
-                        if (distance < radius) {
-                            const angle = Math.atan2(distY, distX);
-                            const pushFactor = (radius - distance) / radius;
-                            gsap.to(char, {
-                                x: Math.cos(angle) * pushFactor * -force,
-                                y: Math.sin(angle) * pushFactor * -force,
-                                rotation: (Math.cos(angle) * pushFactor * -force) * 0.2,
-                                duration: 0.4,
-                                ease: "power2.out",
-                                overwrite: "auto"
-                            });
-                        } else {
-                            gsap.to(char, { x: 0, y: 0, rotation: 0, duration: 0.6, ease: "elastic.out(1, 0.5)", overwrite: "auto" });
-                        }
-                    });
-                };
-
-                window.addEventListener('mousemove', onMouseMove);
-                return () => window.removeEventListener('mousemove', onMouseMove);
-            }, []);
-
-            return (
-                <section className="h-screen flex flex-col justify-center px-8 md:px-24">
-                    <h1 ref={titleRef} className="text-[14vw] md:text-[9vw] font-black leading-[0.85] tracking-tighter uppercase text-white pointer-events-none">
-                        Shaping<br/><span className="text-zinc-500">Digital</span><br/>Prestige.
-                    </h1>
-                </section>
-            );
-        };
-
         const App = () => {
             const [isWhiteSection, setIsWhiteSection] = useState(false);
             const [isModalOpen, setIsModalOpen] = useState(false);
 
             useEffect(() => {
                 const cursor = document.querySelector('.custom-cursor');
-                const xTo = gsap.quickTo(".cursor-wrapper", "x", {duration: 0.3, ease: "power3"}),
-                      yTo = gsap.quickTo(".cursor-wrapper", "y", {duration: 0.3, ease: "power3"});
+                const xTo = gsap.quickTo(".cursor-wrapper", "x", {duration: 0.3}),
+                      yTo = gsap.quickTo(".cursor-wrapper", "y", {duration: 0.3});
+                window.addEventListener('mousemove', (e) => { xTo(e.clientX); yTo(e.clientY); });
 
-                window.addEventListener('mousemove', (e) => {
-                    xTo(e.clientX);
-                    yTo(e.clientY);
+                document.querySelectorAll('.hoverable').forEach(el => {
+                    el.addEventListener('mouseenter', () => cursor.classList.add('cursor-active'));
+                    el.addEventListener('mouseleave', () => cursor.classList.remove('cursor-active'));
                 });
-
-                const updateHoverables = () => {
-                    document.querySelectorAll('.hoverable').forEach(el => {
-                        el.addEventListener('mouseenter', () => cursor.classList.add('cursor-active'));
-                        el.addEventListener('mouseleave', () => cursor.classList.remove('cursor-active'));
-                    });
-                };
-                updateHoverables();
 
                 ScrollTrigger.create({
                     trigger: "#contact-section",
@@ -261,7 +223,6 @@
                     
                     <main>
                         <Hero />
-
                         <section id="vision" className="py-32 px-8 md:px-24">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-white/5 border border-white/5">
                                 {["Brand Architecture", "Bespoke Engineering", "Visual Direction", "Digital Ecosystems"].map((s, i) => (
@@ -302,7 +263,7 @@
                         </div>
                         <div className="flex justify-between items-center pt-8 border-t border-white/5 text-[9px] font-mono text-zinc-700 uppercase tracking-[0.2em]">
                             <span>© 2026 Eclyse Studio</span>
-                            <span>CONNECTING DATA...OK.</span>
+                            <span>DATA_SYNC: SUCCESSFUL</span>
                         </div>
                     </footer>
 
@@ -310,7 +271,6 @@
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
                             <div className="absolute inset-0 bg-black/95 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
                             <div className="relative w-full max-w-xl bg-[#0a0a0a] border border-white/10 p-12 text-center rounded-2xl">
-                                <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-white/30 hover:text-white hoverable">✕</button>
                                 <h2 className="text-4xl font-bold uppercase tracking-tighter mb-12 text-white">Start the Journey</h2>
                                 <div className="grid gap-4">
                                     <a href="https://cal.com/eclyse-studio-hm5slz/15min" target="_blank" className="flex items-center justify-between p-6 bg-white text-black font-bold uppercase text-[10px] hoverable">Book Call</a>
